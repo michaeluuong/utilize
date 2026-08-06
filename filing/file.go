@@ -1,0 +1,406 @@
+// * operations related to files
+package filing
+
+import (
+	"errors"
+	"fmt"
+	"io"
+	"io/fs"
+	"iter"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"regexp"
+	"slices"
+	"strconv"
+	"strings"
+)
+
+const (
+	PathSep              = string(os.PathSeparator) // The OS-specific path separator character
+	FilePerm os.FileMode = 0644
+)
+
+// executable wraps os.Executable to get the path that the executable is running from.
+var executable = os.Executable
+
+// Cat prints a file to stdout (or an optional io.Writer).
+//   - filename is the name of the file to cat
+//   - writerOpt is an optional io.Writer to replace Stdout (e.g. *os.File, bytes.Buffer)
+func Cat(filename string, writerOpt ...io.Writer) {
+	var w io.Writer = os.Stdout
+	if len(writerOpt) > 0 {
+		w = writerOpt[0]
+	}
+	content, err := os.ReadFile(filename)
+	if err == nil {
+		fmt.Fprint(w, string(content))
+
+	}
+
+}
+
+// CopyFile copies the contents of a file to another file.
+//   - src is the file that you are copying from
+//   - dst is the file that you are copying to
+//
+// Return an error if unable to copy src to dst
+func CopyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+
+	}
+	defer sourceFile.Close()
+
+	destinationFile, err := os.Create(dst)
+	if err != nil {
+		return err
+
+	}
+	defer destinationFile.Close()
+
+	_, err = io.Copy(destinationFile, sourceFile)
+
+	return err
+
+}
+
+// DirEntryIter returns an info iterator.
+//   - dirList is a list of os.DirEntry values
+//
+// Return an iterator on info.
+func DirEntryIter(dirList []os.DirEntry) iter.Seq[fs.FileInfo] {
+	return func(yield func(fs.FileInfo) bool) {
+		for _, de := range dirList {
+			info, _ := de.Info()
+			if !yield(info) {
+				return
+
+			}
+
+		}
+
+	}
+
+}
+
+// DirEntryNameIter returns a filename iterator.
+//   - dirList is the list of os.DirEntry file info
+//
+// Return an iterator on filename (i..e os.DirEntry.Info.Name()).
+func DirEntryNameIter(dirList []os.DirEntry) iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, de := range dirList {
+			info, _ := de.Info()
+			if !yield(info.Name()) {
+				return
+
+			}
+
+		}
+
+	}
+
+}
+
+// DirEntryNameSet gets a set of filenames from []os.DirEntry.
+//   - dirList is the list of files
+//
+// Return a set of filenames from dirList.
+func DirEntryNameSet(dirList []os.DirEntry) map[string]bool {
+	names := map[string]bool{}
+	for name := range DirEntryNameIter(dirList) {
+		names[name] = true
+
+	}
+
+	return names
+
+}
+
+// DirEntryName gets a slice of filenames from []os.DirEntry.
+//   - dirList is the list of files
+//
+// Return a slice of filenames from dirList.
+func DirEntryName(dirList []os.DirEntry) []string {
+	names := []string{}
+	for name := range DirEntryNameIter(dirList) {
+		names = append(names, name)
+
+	}
+
+	return names
+
+}
+
+// ExecutablePath returns the path that the current executable is running from.
+//
+// If it can't find an executable (possibly due to "go run name.go") it will return an empty path with an error.
+//
+// Return the executable path to the binary or an error if unable to find it (e.g. there is no executable)
+func ExecutablePath() (string, error) {
+	//	execPath, err := os.Executable()
+	execPath, err := executable()
+	if err != nil {
+		execPath = ""
+
+	} else if matched, err2 := regexp.MatchString("/go-build[0-9]+/", execPath); err2 == nil && matched {
+		execPath = ""
+		err = errors.New("Can't find executable path: possibly not running from an executable")
+
+	}
+
+	return execPath, err
+
+}
+
+// Exists checks if a file/directory holds the property of existence.
+//   - filename is the name of the file to check for existence
+//
+// Returns true if the file exists and has adequate permissioning, otherwise it returns false.
+func Exists(filename string) bool {
+	_, err := os.Stat(filename)
+	if err != nil && strings.Contains(err.Error(), "permission denied") {
+		slog.Debug("os.Stat()|permission denied", "err", err)
+		return true
+
+	} else if err == nil {
+		return true
+
+	}
+
+	return false
+
+}
+
+// Ls get the contents of a directory. An empty directory defaults to the current directory.
+//   - dir is the directory to list
+//   - regexOpts are the optional regular expressions that are ORed together to find specific files (also supports -d for directories only)
+//
+// Return a list of files in dir as []os.DirEntry or an error "could not read directory: dir" if unable to read the directory.
+func Ls(dir string, regexOpts ...string) ([]os.DirEntry, error) {
+	if dir == "" {
+		dir = "."
+
+	}
+
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, errors.New("could not read directory: " + dir)
+
+	}
+
+	if len(regexOpts) > 0 {
+		regexOpts, dOk := FindRegexOpt("-d", regexOpts...)
+
+		regex := strings.Join(regexOpts, "|")
+		slog.Debug("strings.Join()|regular expression", "regexOpts", regexOpts, "regex", regex)
+
+		re := regexp.MustCompile(regex)
+		files = slices.DeleteFunc(files, func(de os.DirEntry) bool {
+			return !re.MatchString(de.Name()) || (dOk && !de.IsDir())
+
+		})
+
+	}
+
+	return files, nil
+
+}
+
+// FindRegexOpt looks for an option in the optional parameters and removes it if found.
+//   - opt is the option to look for in regexOpts
+//   - regexOpts are optional parameters
+//
+// Return
+//   - regexOpts with opt removed if found
+//   - true if opt was found in regexOpts false otherwise
+func FindRegexOpt(opt string, regexOpts ...string) ([]string, bool) {
+	if len(regexOpts) > 0 {
+		optIndex := slices.Index(regexOpts, opt)
+		if optIndex != -1 {
+			regexOpts = slices.Delete(regexOpts, optIndex, optIndex+1)
+			return regexOpts, true
+
+		}
+
+	}
+
+	return regexOpts, false
+
+}
+
+// LsEntryName gets a set of filenames from the directory.
+//   - dir is the directory to get filenames from
+//   - regexOpts are the optional regular expressions that are ORed together to find specific files (also supports -d for directories only and add_dir to add dir to the filename)
+//
+// Return a slice of filenames.
+func LsEntryName(dir string, regexOpts ...string) []string {
+	regexOpts, addDirOk := FindRegexOpt("add_dir", regexOpts...)
+	dirList, _ := Ls(dir, regexOpts...)
+
+	filenames := DirEntryName(dirList)
+	if addDirOk {
+		for i := range filenames {
+			filenames[i] = filepath.Join(dir, filenames[i])
+
+		}
+
+	}
+
+	return filenames
+
+}
+
+// LsEntryNameSet gets a set of filenames from the directory.
+//   - dir is the directory to get filenames from
+//   - globOpt are the optional file globs that are ORed together (also supports -d for directories only)
+//
+// Return a set of filenames.
+func LsEntryNameSet(dir string, globOpt ...string) map[string]bool {
+	dirList, _ := Ls(dir, globOpt...)
+
+	return DirEntryNameSet(dirList)
+
+}
+
+// LsGlob is a Unix-like ls but less efficient than os.ReadDir() and matching.
+//   - globEx is a Unix style glob (can take a full path)
+//
+// Return
+//   - a list of files that match the glob
+//   - an error if the glob pattern is malformed
+func LsGlob(globEx string) ([]string, error) {
+	return filepath.Glob(globEx)
+
+}
+
+// longestDirEntryName gets the longest filename.
+//   - dirList is a list of files
+//   - infoFuncOpt is the FileInfo function to check for length
+//
+// Return the length of the longest filename.
+func longestDirEntry(dirList []os.DirEntry) int {
+	maxLen := 0
+
+	for _, de := range dirList {
+		info, _ := de.Info()
+		nameLen := len(info.Name())
+		if nameLen > maxLen {
+			maxLen = nameLen
+
+		}
+
+	}
+
+	return maxLen
+
+}
+
+// NextFile tries to find the next non-existent file by adding a suffix to the current file (e.g. test.txt -> test_2.txt)
+//   - filePath is the path to the file
+//
+// Return the name of the next file to create.
+func NextFile(filePath string) string {
+	if filePath != "" {
+		dir, filename := filepath.Split(filePath)
+		ext := filepath.Ext(filename)
+		fileNoExt := strings.TrimSuffix(filename, ext)
+
+		newFileRegex := "^" + regexp.QuoteMeta(fileNoExt) + "(_[0-9]+)?" + regexp.QuoteMeta(ext) + "$"
+		filenames := LsEntryNameSet(dir, newFileRegex)
+		for i := 1; i <= len(filenames)+1; i++ {
+			var checkFile = filename
+			if i > 1 {
+				checkFile = fileNoExt + "_" + strconv.Itoa(i) + ext
+
+			}
+
+			if _, ok := filenames[checkFile]; !ok {
+				return filepath.Join(dir, checkFile)
+
+			}
+
+		}
+
+	}
+
+	return ""
+
+}
+
+// NormalizeFilename removes undesirable characters from the filename.
+//   - filename is the name of the file to normalize
+//   - replaceSpacesOpt is an optional parameter where spaces are replaced by underscores if true
+//
+// NOTE: if your file is a path in a unix-like environment this will have destroyed it
+//   - / is replaced by +
+//   - : is replaced by a space
+//   - ’ (curly quote) is replaced by non-curly quote '
+//   - if replaceSpace is true all spaces will be replaced by _
+//   - anything not in this character set [a-zA-Z0-9().'+-_!@& ] will be removed
+//
+// Return the filename with characters removed and/or replaced.
+func NormalizeFilename(filename string, replaceSpacesOpt ...bool) string {
+	filename = strings.ReplaceAll(filename, "/", "+")
+	filename = strings.ReplaceAll(filename, ":", " ")
+
+	// ’ Replace curly apostrophe with straight single quote
+	filename = strings.ReplaceAll(filename, "’", "'")
+
+	regexSpace := regexp.MustCompile(`\s+`)
+	filename = regexSpace.ReplaceAllString(filename, " ")
+	if len(replaceSpacesOpt) > 0 && replaceSpacesOpt[0] {
+		filename = strings.ReplaceAll(filename, " ", "_")
+
+	}
+
+	const allowedCharacterRegex = "[^a-zA-Z0-9().'+-_!@& ]+"
+	regex := regexp.MustCompile(allowedCharacterRegex)
+	return regex.ReplaceAllString(filename, "")
+
+}
+
+// PrintDirEntry prints dirList with columns: Mode     Filename        Size
+//   - dirList is the list of directories to print
+//   - writerOpt optional target to write output
+func PrintDirEntry(dirList []os.DirEntry, writerOpt ...io.Writer) {
+	var writer io.Writer = os.Stdout
+	if len(writerOpt) > 0 {
+		writer = writerOpt[0]
+
+	}
+
+	fileLen := longestDirEntry(dirList)
+	if fileLen <= 10 {
+		fileLen = 20
+
+	} else {
+		fileLen += 5
+
+	}
+
+	verbs := "%-13s%-" + strconv.Itoa(fileLen) + "s%-10d\n"
+	for _, dir := range dirList {
+		info, _ := dir.Info()
+		fmt.Fprintf(writer, verbs, info.Mode(), info.Name(), info.Size())
+
+	}
+
+}
+
+// ReadFileToString copies the contents of a file to a string.
+//   - filename is the name of the file to copy the contents of
+//
+// Return the contentents of filename as a string or an error if unable to copy the contents of filename.
+func ReadFileToString(filename string) (string, error) {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return "", err
+
+	}
+
+	return string(data), nil
+
+}
