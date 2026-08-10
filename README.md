@@ -1,4 +1,4 @@
-# Utilize
+# utilize
 Utilize provides common utilities that are popular with no one except myself.  
 While not specifically relegated to macOS, no amount of testing has occurred on any other operating systems.
 
