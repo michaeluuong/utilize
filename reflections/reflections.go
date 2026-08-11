@@ -486,7 +486,7 @@ func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, ne
 
 			} else {
 				newTab, newEndTab := tab, endTab
-				if fieldValue.Kind() == reflect.Struct && newline != "" {
+				if (fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Map) && newline != "" {
 					newTab, newEndTab = tab+"\t", endTab+"\t"
 
 				}
