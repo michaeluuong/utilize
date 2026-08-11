@@ -419,10 +419,10 @@ func StructString(anyStruct any, stringOpts ...string) string {
 
 func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, newline, tab, endTab string, stringOpts ...string) {
 	fmt.Printf("structStringHelper()|objName: %s, objValue.Kind(): %v\n", objName, objValue.Kind())
-	if objValue.Kind() == reflect.Pointer {
+	/*if objValue.Kind() == reflect.Pointer {
 		objValue = objValue.Elem()
 
-	}
+	}*/
 	objType := objValue.Type()
 
 	colon := ":"
@@ -515,6 +515,7 @@ func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, ne
 			val := ""
 			if !objValue.IsNil() {
 				objPtrIndex := objValue.Index(i)
+				fmt.Printf("\tstructStringHelper()|objName: %s, i: %d, objPtrIndex.Kind(): %v\n", objName, i, objPtrIndex.Kind())
 				if objPtrIndex.Kind() == reflect.Pointer {
 					objPtrIndex = objPtrIndex.Elem()
 
