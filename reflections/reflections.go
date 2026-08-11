@@ -3,6 +3,7 @@ package reflections
 
 import (
 	"fmt"
+	"log/slog"
 	"reflect"
 	"regexp"
 	"runtime"
@@ -641,6 +642,7 @@ func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, ne
 //   - true|false if it is a bool
 func stringValue(objValue reflect.Value) string {
 	var val string
+	slog.Debug("POES3", "NumberGeneral(objValue)", NumberGeneral(objValue))
 	if objValue.Kind() == reflect.String {
 		//val = fmt.Sprintf("%s", objValue)
 		val = fmt.Sprintf("\"%s\"", objValue)
