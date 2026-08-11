@@ -418,6 +418,7 @@ func StructString(anyStruct any, stringOpts ...string) string {
 }
 
 func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, newline, tab, endTab string, stringOpts ...string) {
+	fmt.Printf("structStringHelper()|objName: %s, objValue.Kind(): %v\n", objName, objValue.Kind())
 	if objValue.Kind() == reflect.Pointer {
 		objValue = objValue.Elem()
 
