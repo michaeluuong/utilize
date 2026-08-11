@@ -566,7 +566,7 @@ func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, ne
 		}
 
 		if sbPtr.Len() > 0 && sbPtr.String() != "," {
-			fmt.Printf("%s%s%s%s["+typeVerb+"]", checkTab, objName, colon, fType, sbPtr.String())
+			fmt.Printf("FUCK %s%s%s%s["+typeVerb+"]", checkTab, objName, colon, fType, sbPtr.String())
 			fmt.Fprintf(sb, "%s%s%s%s["+typeVerb+"]", checkTab, objName, colon, fType, sbPtr.String())
 
 		}
