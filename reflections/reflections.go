@@ -648,7 +648,7 @@ func stringValue(objValue reflect.Value) string {
 	} else if NumberGeneral(objValue) == reflect.Int {
 		val = fmt.Sprintf("%d", objValue.Int())
 
-	} else if NumberGeneral(objValue) == reflect.Int {
+	} else if NumberGeneral(objValue) == reflect.Uint {
 		val = fmt.Sprintf("%d", objValue.Uint())
 
 	} else if NumberGeneral(objValue) == reflect.Float32 {
@@ -673,11 +673,11 @@ func stringValue(objValue reflect.Value) string {
 //   - objValue.Kind()
 func NumberGeneral(objValue reflect.Value) reflect.Kind {
 	switch objValue.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return reflect.Int
-
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return reflect.Uint
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return reflect.Int
 
 	case reflect.Float32, reflect.Float64:
 		return reflect.Float32
