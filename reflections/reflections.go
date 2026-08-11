@@ -389,10 +389,10 @@ func StructString(anyStruct any, stringOpts ...string) string {
 	newline, tab, endTab := "", "", ""
 	if len(stringOpts) > 0 && slices.Contains(stringOpts, "newline") {
 		newline = "\n"
-		if tab == "" {
+		/*if tab == "" {
 			tab = "\t"
 
-		}
+		}*/
 
 	}
 
