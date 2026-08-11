@@ -364,6 +364,8 @@ func SetStructFieldByType(field reflect.Value, stringValue string) error {
 
 }
 
+// Need to fix this to print any e.g. DefaultConfigger.DefaultParentValues   any    `json:"-"` // Default values for the parent
+//
 // StructString gets all struct fields and values (struct_name {field_name:[(field_type) ]field_value}).
 //   - anyStruct is the struct to print
 //   - stringOpts "type" includes the struct field's type, "newline" tries to put fields on separate lines, add tabs i.e. "\t\t" to prefix lines
@@ -646,6 +648,9 @@ func stringValue(objValue reflect.Value) string {
 	} else if NumberGeneral(objValue) == reflect.Int {
 		val = fmt.Sprintf("%d", objValue.Int())
 
+	} else if NumberGeneral(objValue) == reflect.Int {
+		val = fmt.Sprintf("%d", objValue.Uint())
+
 	} else if NumberGeneral(objValue) == reflect.Float32 {
 		val = fmt.Sprintf("%f", objValue.Float())
 
@@ -662,14 +667,17 @@ func stringValue(objValue reflect.Value) string {
 //   - objValue is the value to generalize
 //
 // Return
-//   - reflect.Int if any of: reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr
+//   - reflect.Int if any of: reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64
+//   - reflect.Uint if any of: reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr
 //   - reflect.Float32 if any of: reflect.Float32, reflect.Float64
 //   - objValue.Kind()
 func NumberGeneral(objValue reflect.Value) reflect.Kind {
 	switch objValue.Kind() {
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return reflect.Int
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return reflect.Uint
 
 	case reflect.Float32, reflect.Float64:
 		return reflect.Float32
