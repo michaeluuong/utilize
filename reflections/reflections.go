@@ -574,7 +574,7 @@ func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, ne
 
 		}
 
-		fmt.Fprintf(sb, "%s%s%s%s["+typeVerb+"]", checkTab, objName, colon, fType, sbPtr.String())
+		fmt.Fprintf(sb, "%s%s%s%s["+typeVerb+"]", checkTab+thisTab, objName, colon, fType, sbPtr.String())
 
 	} else if objValue.Kind() == reflect.Map {
 		mapIter := objValue.MapRange()
