@@ -472,7 +472,8 @@ func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, ne
 
 				}
 
-				structStart := fmt.Sprintf("%s%s{%s", endTab, newName, newline)
+				//structStart := fmt.Sprintf("%s%s{%s", endTab, newName, newline)
+				structStart := fmt.Sprintf("%s%s{%s", tab, newName, newline)
 				sb.WriteString(structStart)
 
 			} else {
@@ -486,7 +487,7 @@ func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, ne
 
 			} else {
 				newTab, newEndTab := tab, endTab
-				if (fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Map) && newline != "" {
+				if fieldValue.Kind() == reflect.Struct && newline != "" {
 					newTab, newEndTab = tab+"\t", endTab+"\t"
 
 				}
