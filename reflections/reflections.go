@@ -437,6 +437,12 @@ func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, ne
 
 	}
 
+	thisTab := ""
+	if newline != "" {
+		thisTab = "\t"
+
+	}
+
 	if objValue.Kind() == reflect.Struct {
 		for i := 0; i < objValue.NumField(); i++ {
 			fieldValue := objValue.Field(i)
@@ -483,12 +489,12 @@ func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, ne
 			}
 
 			if sValue := stringValue(itemPtr); sValue != "" {
-				fmt.Fprintf(sb, "%s%s:%s%s", tab, fieldName, fType, sValue) //, newline)
+				fmt.Fprintf(sb, "%s%s:%s%s", tab+thisTab, fieldName, fType, sValue) //, newline)
 
 			} else {
 				newTab, newEndTab := tab, endTab
 				if fieldValue.Kind() == reflect.Struct && newline != "" {
-					newTab, newEndTab = tab+"\t\t", endTab+"\t\t"
+					newTab, newEndTab = tab+thisTab, endTab+thisTab
 
 				}
 
@@ -531,7 +537,7 @@ func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, ne
 					//if objPtrIndex.Kind() == reflect.Struct {
 					if newline != "" {
 						newName = objName
-						newTab, newEndTab = tab+"\t", endTab+"\t"
+						newTab, newEndTab = tab+thisTab, endTab+thisTab
 
 					}
 
@@ -580,11 +586,6 @@ func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, ne
 		}
 
 		fmt.Fprintf(sb, "%s%s%s%s{%s", checkTab, objName, colon, fType, newline)
-		thisTab := ""
-		if newline != "" {
-			thisTab = "\t"
-
-		}
 
 		i := 0
 		keyLen := len(objValue.MapKeys())
