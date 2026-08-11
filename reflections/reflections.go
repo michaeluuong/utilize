@@ -546,10 +546,10 @@ func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, ne
 			if val != "" {
 				sbPtr.WriteString(val)
 
-			}
+				if i != objValue.Len()-1 {
+					sbPtr.WriteString(", ")
 
-			if i != objValue.Len()-1 {
-				sbPtr.WriteString(", ")
+				}
 
 			}
 
