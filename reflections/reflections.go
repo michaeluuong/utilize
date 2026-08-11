@@ -612,7 +612,8 @@ func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, ne
 					checkName = ""
 
 				}
-				structStringHelper(sb, v, checkName, newline, tab+"\t", endTab+"\t", stringOpts...)
+				//structStringHelper(sb, v, checkName, newline, tab+"\t", endTab+"\t", stringOpts...)
+				structStringHelper(sb, v, checkName, newline, tab+thisTab, endTab+thisTab, stringOpts...)
 
 			}
 
