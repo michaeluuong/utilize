@@ -418,10 +418,10 @@ func StructString(anyStruct any, stringOpts ...string) string {
 }
 
 func structStringHelper(sb *strings.Builder, objValue reflect.Value, objName, newline, tab, endTab string, stringOpts ...string) {
-	/*if objValue.Kind() == reflect.Pointer {
+	if objValue.Kind() == reflect.Pointer {
 		objValue = objValue.Elem()
 
-	}*/
+	}
 	objType := objValue.Type()
 
 	colon := ":"
